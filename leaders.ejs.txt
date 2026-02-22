@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title><%= title %></title>
+    <style>
+        body {
+            background: #0a0c10;
+            color: #ffd700;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background: #000;
+            padding: 20px;
+            border-bottom: 3px solid #b8860b;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .logo {
+            color: #ffd700;
+            font-size: 2rem;
+            text-decoration: none;
+        }
+        
+        .nav-links a {
+            color: #ffd700;
+            text-decoration: none;
+            margin-left: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 30px;
+            background: #1a1e26;
+            border: 2px solid #b8860b;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #b8860b;
+            color: #000;
+            padding: 15px;
+            font-size: 1.2rem;
+        }
+        
+        td {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #b8860b;
+        }
+        
+        .rank-1 { color: #ffd700; font-weight: bold; }
+        .rank-2 { color: #c0c0c0; }
+        .rank-3 { color: #cd7f32; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="logo">⚔️ NORDSAGA</a>
+        <div class="nav-links">
+            <a href="/">Главная</a>
+            <a href="/game">Игра</a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <h1>🏆 ТАБЛИЦА ЛИДЕРОВ 🏆</h1>
+        
+        <table>
+            <tr>
+                <th>Место</th>
+                <th>Ярл</th>
+                <th>👑 Слава</th>
+                <th>💰 Золото</th>
+            </tr>
+            <% users.forEach((user, index) => { %>
+            <tr>
+                <td class="rank-<%= index + 1 %>">#<%= index + 1 %></td>
+                <td><%= user.username %></td>
+                <td><%= user.glory %></td>
+                <td><%= user.gold %></td>
+            </tr>
+            <% }) %>
+        </table>
+    </div>
+</body>
+</html>

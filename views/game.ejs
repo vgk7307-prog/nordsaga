@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NORDSAGA - Игра</title>
+    <style>
+        body {
+            background: #0a0c10;
+            color: #ffd700;
+            font-family: Arial;
+            padding: 20px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            background: #1a1e26;
+            padding: 20px;
+            border: 2px solid #b8860b;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .map {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+            background: #1a1e26;
+            padding: 20px;
+            border: 2px solid #b8860b;
+            margin-bottom: 20px;
+        }
+        .cell {
+            aspect-ratio: 1;
+            background: #2a2f3a;
+            border: 1px solid #b8860b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            cursor: pointer;
+        }
+        .cell.player {
+            background: #ffd700;
+            color: #000;
+        }
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #1a1e26;
+            border: 2px solid #b8860b;
+            color: #ffd700;
+            padding: 15px;
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+        button:hover {
+            background: #b8860b;
+            color: #000;
+        }
+        .log {
+            background: #1a1e26;
+            padding: 20px;
+            border: 2px solid #b8860b;
+            height: 150px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>⚔️ NORDSAGA ⚔️</h1>
+    <p>Ярл: <%= user.username %></p>
+    
+    <div class="stats" id="stats">
+        <div>👑 Слава: <span id="glory">0</span></div>
+        <div>💰 Золото: <span id="gold">0</span></div>
+        <div>🛡️ Дружина: <span id="crew">0</span></div>
+        <div>⚔️ Сила: <span id="power">0</span></div>
+        <div>🍖 Еда: <span id="food">0</span></div>
+        <div>📅 День: <span id="day">0</span></div>
+    </div>
+    
+    <div class="map" id="map"></div>
+    
+    <div class="buttons">
+        <button onclick="move('north')">⬆️ СЕВЕР</button>
+        <button onclick="move('south')">⬇️ ЮГ</button>
+        <button onclick="move('west')">⬅️ ЗАПАД</button>
+        <button onclick="move('east')">➡️ ВОСТОК</button>
+        <button onclick="rest()">🏕️ ОТДЫХ</button>
+        <button onclick="hunt()">🏹 ОХОТА</button>
+        <button onclick="trade()">💰 ТОРГОВЛЯ</button>
+        <button onclick="saveGame()">💾 СОХРАНИТЬ</button>
+    </div>
+    
+    <div class="log" id="log"></div>
+
+    <script>
+        let player = {
+            x: 2, y: 2,
+            glory: 100,
+            gold: 200,
+            crew: 50,
+            power: 100,
+            food: 30,
+            day: 1,
+            inventory: { wood: 10, iron: 5, weapons: 3, treasure: 0 }
+        };
+        
+        let map = [
+            ['🏰', '🌲', '⛰️', '🌊', '🏡'],
+            ['🌲', '🏡', '🌲', '⛰️', '🌊'],
+            ['🌊', '🌲', '🏡', '🌲', '⛰️'],
+            ['⛰️', '🌊', '🌲', '🏰', '🌲'],
+            ['🏡', '⛰️', '🌊', '🌲', '🏰']
+        ];
+        
+        let visited = {'2,2': true};
+
+        async function loadGame() {
+            try {
+                const res = await fetch('/api/load');
+                const data = await res.json();
+                if (data.game) {
+                    player = data.game;
+                    updateAll();
+                    addLog('Игра загружена');
+                }
+            } catch (e) {
+                addLog('Ошибка загрузки');
+            }
+        }
+
+        async function saveGame() {
+            try {
+                await fetch('/api/save', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ gameData: player })
+                });
+                addLog('Игра сохранена');
+            } catch (e) {
+                addLog('Ошибка сохранения');
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('glory').innerHTML = player.glory;
+            document.getElementById('gold').innerHTML = player.gold;
+            document.getElementById('crew').innerHTML = player.crew;
+            document.getElementById('power').innerHTML = player.power;
+            document.getElementById('food').innerHTML = player.food;
+            document.getElementById('day').innerHTML = player.day;
+        }
+
+        function renderMap() {
+            let html = '';
+            for (let y = 0; y < 5; y++) {
+                for (let x = 0; x < 5; x++) {
+                    let classes = 'cell';
+                    if (x === player.x && y === player.y) classes += ' player';
+                    html += `<div class="${classes}" onclick="moveTo(${x},${y})">${map[y][x]}</div>`;
+                }
+            }
+            document.getElementById('map').innerHTML = html;
+        }
+
+        function addLog(text) {
+            const log = document.getElementById('log');
+            log.innerHTML += `<div>⚔️ ${text}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function move(dir) {
+            let newX = player.x, newY = player.y;
+            if (dir === 'north' && player.y > 0) newY--;
+            if (dir === 'south' && player.y < 4) newY++;
+            if (dir === 'west' && player.x > 0) newX--;
+            if (dir === 'east' && player.x < 4) newX++;
+            
+            if (newX !== player.x || newY !== player.y) {
+                player.x = newX;
+                player.y = newY;
+                player.food -= 5;
+                player.day++;
+                visited[`${player.x},${player.y}`] = true;
+                
+                if (player.food < 0) {
+                    player.crew -= 5;
+                    player.food = 0;
+                    addLog('Голод! Потери в дружине');
+                }
+                
+                locationEvent();
+                updateAll();
+            }
+        }
+
+        function moveTo(x, y) {
+            if (x !== player.x || y !== player.y) {
+                player.x = x;
+                player.y = y;
+                player.food -= 5;
+                player.day++;
+                locationEvent();
+                updateAll();
+            }
+        }
+
+        function locationEvent() {
+            let cell = map[player.y][player.x];
+            let event = '';
+            
+            if (cell === '🏡' || cell === '🏰') {
+                let r = Math.random();
+                if (r < 0.3) {
+                    player.gold += 50;
+                    event = 'Нашли золото! +50';
+                } else if (r < 0.6) {
+                    player.crew += 5;
+                    event = 'Присоединились воины! +5';
+                } else {
+                    player.power += 10;
+                    event = 'Улучшили оружие! +10 силы';
+                }
+            } else if (cell === '🌲') {
+                let r = Math.random();
+                if (r < 0.4) {
+                    player.food += 20;
+                    event = 'Удачная охота! +20 еды';
+                } else if (r < 0.7) {
+                    player.crew -= 3;
+                    event = 'Напали волки! -3 дружины';
+                }
+            } else if (cell === '⛰️') {
+                let r = Math.random();
+                if (r < 0.3) {
+                    player.gold += 100;
+                    player.inventory.treasure++;
+                    event = 'Нашли сокровища! +100 золота';
+                } else if (r < 0.6) {
+                    player.crew -= 5;
+                    event = 'Камнепад! -5 дружины';
+                }
+            } else if (cell === '🌊') {
+                let r = Math.random();
+                if (r < 0.3) {
+                    player.gold += 30;
+                    event = 'Нашли затонувший корабль! +30 золота';
+                } else if (r < 0.6) {
+                    player.crew -= 8;
+                    event = 'Шторм! -8 дружины';
+                }
+            }
+            
+            if (event) addLog(event);
+            
+            if (player.crew <= 0) {
+                addLog('💀 Твоя дружина погибла...');
+            }
+        }
+
+        function rest() {
+            player.power += 20;
+            if (player.power > 100) player.power = 100;
+            player.food -= 10;
+            player.day++;
+            addLog('Отдых +20 силы, -10 еды');
+            updateAll();
+        }
+
+        function hunt() {
+            if (map[player.y][player.x] === '🌲') {
+                if (Math.random() < 0.7) {
+                    player.food += 30;
+                    addLog('Удачная охота! +30 еды');
+                } else {
+                    player.crew -= 2;
+                    addLog('Охота провалилась, потери -2');
+                }
+            } else {
+                addLog('Здесь не на кого охотиться');
+            }
+            player.day++;
+            updateAll();
+        }
+
+        function trade() {
+            let cell = map[player.y][player.x];
+            if (cell === '🏡' || cell === '🏰') {
+                if (player.gold >= 50) {
+                    player.gold -= 50;
+                    player.food += 40;
+                    player.power += 15;
+                    player.inventory.weapons += 2;
+                    player.day++;
+                    addLog('Торговля: -50 золота, +40 еды, +15 силы, +2 оружия');
+                } else {
+                    addLog('Не хватает золота');
+                }
+            } else {
+                addLog('Здесь не с кем торговать');
+            }
+            updateAll();
+        }
+
+        function updateAll() {
+            renderMap();
+            updateStats();
+        }
+
+        // Запуск
+        loadGame();
+        renderMap();
+        updateStats();
+        addLog('Сага начинается...');
+    </script>
+</body>
+</html>
