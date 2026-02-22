@@ -1,0 +1,172 @@
+const express = require('express');
+const session = require('express-session');
+const path = require('path');
+const fs = require('fs');
+const app = express();
+
+// Настройки для Vercel
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Настройка сессий для Vercel (используем файловое хранилище)
+const MemoryStore = require('memorystore')(session);
+app.use(session({
+    secret: 'viking-secret-key',
+    resave: false,
+    saveUninitialized: true,
+    store: new MemoryStore({
+        checkPeriod: 86400000 // удалять просроченные сессии раз в 24 часа
+    }),
+    cookie: {
+        maxAge: 24 * 60 * 60 * 1000 // 24 часа
+    }
+}));
+
+// Шаблонизатор
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+// Временная база данных в памяти (для Vercel)
+let usersDB = {};
+
+// Загружаем пользователей из файла (если есть)
+try {
+    if (fs.existsSync('/tmp/users.json')) {
+        usersDB = JSON.parse(fs.readFileSync('/tmp/users.json'));
+    }
+} catch (e) {
+    console.log('Новая база данных');
+}
+
+// Функция сохранения
+function saveUsers() {
+    try {
+        fs.writeFileSync('/tmp/users.json', JSON.stringify(usersDB, null, 2));
+    } catch (e) {
+        console.log('Ошибка сохранения');
+    }
+}
+
+// Маршруты
+app.get('/', (req, res) => {
+    res.render('index', { user: req.session.user || null });
+});
+
+app.get('/game', (req, res) => {
+    if (!req.session.user) return res.redirect('/login');
+    res.render('game', { user: req.session.user });
+});
+
+app.get('/login', (req, res) => {
+    res.render('login');
+});
+
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+    
+    if (!usersDB[username]) {
+        return res.json({ success: false, message: 'Пользователь не найден' });
+    }
+    
+    if (usersDB[username].password !== password) {
+        return res.json({ success: false, message: 'Неверный пароль' });
+    }
+    
+    req.session.user = usersDB[username];
+    res.json({ success: true, redirect: '/game' });
+});
+
+app.get('/register', (req, res) => {
+    res.render('register');
+});
+
+app.post('/register', (req, res) => {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+        return res.json({ success: false, message: 'Заполните все поля' });
+    }
+    
+    if (usersDB[username]) {
+        return res.json({ success: false, message: 'Пользователь уже существует' });
+    }
+    
+    const user = {
+        username,
+        password,
+        game: {
+            glory: 100,
+            gold: 200,
+            crew: 50,
+            power: 100,
+            food: 30,
+            x: 2,
+            y: 2,
+            inventory: {
+                wood: 10,
+                iron: 5,
+                weapons: 3,
+                treasure: 0
+            }
+        }
+    };
+    
+    usersDB[username] = user;
+    saveUsers();
+    req.session.user = user;
+    res.json({ success: true, redirect: '/game' });
+});
+
+app.post('/api/save', (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: 'Не авторизован' });
+    }
+    
+    const { gameData } = req.body;
+    const username = req.session.user.username;
+    
+    if (usersDB[username]) {
+        usersDB[username].game = gameData;
+        saveUsers();
+        req.session.user = usersDB[username];
+    }
+    
+    res.json({ success: true });
+});
+
+app.get('/api/load', (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: 'Не авторизован' });
+    }
+    
+    res.json({ game: req.session.user.game });
+});
+
+app.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/');
+});
+
+app.get('/leaders', (req, res) => {
+    const users = Object.values(usersDB)
+        .map(u => ({
+            username: u.username,
+            glory: u.game.glory,
+            gold: u.game.gold
+        }))
+        .sort((a, b) => b.glory - a.glory)
+        .slice(0, 10);
+    
+    res.render('leaders', { users });
+});
+
+// Для локального запуска
+if (require.main === module) {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        console.log(`\n⚔️ NORDSAGA запущен на http://localhost:${PORT}\n`);
+    });
+}
+
+// Экспорт для Vercel
+module.exports = app;

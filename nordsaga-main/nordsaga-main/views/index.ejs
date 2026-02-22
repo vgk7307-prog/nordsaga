@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NORDSAGA</title>
+    <style>
+        body { background: #0a0c10; color: #ffd700; font-family: Arial; text-align: center; padding: 50px; }
+        h1 { font-size: 4rem; }
+        .btn { display: inline-block; padding: 15px 30px; margin: 10px; border: 2px solid #ffd700; color: #ffd700; text-decoration: none; border-radius: 5px; }
+        .btn:hover { background: #ffd700; color: #000; }
+    </style>
+</head>
+<body>
+    <h1>⚔️ NORDSAGA ⚔️</h1>
+    <% if (user) { %>
+        <p>С возвращением, ярл <%= user.username %>!</p>
+        <a href="/game" class="btn">⚔️ ИГРАТЬ</a>
+        <a href="/logout" class="btn">🚪 ВЫЙТИ</a>
+    <% } else { %>
+        <p>Стань легендой севера!</p>
+        <a href="/login" class="btn">🔑 ВОЙТИ</a>
+        <a href="/register" class="btn">📝 РЕГИСТРАЦИЯ</a>
+    <% } %>
+    <a href="/leaders" class="btn">🏆 ЛИДЕРЫ</a>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title><%= title %></title>
+    <style>
+        body {
+            background: #0a0c10;
+            color: #ffd700;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .auth-container {
+            background: #1a1e26;
+            padding: 40px;
+            border: 3px solid #b8860b;
+            border-radius: 10px;
+            width: 400px;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            background: #2a2f3a;
+            border: 1px solid #b8860b;
+            color: #ffd700;
+            font-size: 1.1rem;
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #b8860b;
+            color: #000;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            margin: 20px 0;
+        }
+        
+        a {
+            color: #b8860b;
+            text-decoration: none;
+        }
+        
+        .error {
+            color: #ff4444;
+            text-align: center;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <h1>⚔️ ВХОД ⚔️</h1>
+        <input type="text" id="username" placeholder="Имя ярла">
+        <input type="password" id="password" placeholder="Пароль">
+        <div id="error" class="error"></div>
+        <button onclick="login()">Войти</button>
+        <div style="text-align: center">
+            <a href="/register">Нет аккаунта? Создать</a>
+        </div>
+    </div>
+    
+    <script>
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            const response = await fetch('/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ username, password })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                window.location.href = data.redirect;
+            } else {
+                document.getElementById('error').innerHTML = data.message;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title><%= title %></title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0c10;
+            color: #e0e6ed;
+            font-family: 'Arial', sans-serif;
+            min-height: 100vh;
+        }
+        
+        /* Навигация */
+        .navbar {
+            background: #000;
+            padding: 20px;
+            border-bottom: 3px solid #b8860b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 2rem;
+            color: #ffd700;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        
+        .nav-links a {
+            color: #ffd700;
+            text-decoration: none;
+            margin-left: 30px;
+            font-size: 1.2rem;
+            padding: 10px 20px;
+            border: 1px solid #b8860b;
+            border-radius: 5px;
+        }
+        
+        .nav-links a:hover {
+            background: #b8860b;
+            color: #000;
+        }
+        
+        /* Герой */
+        .hero {
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), 
+                        url('https://images.unsplash.com/photo-1519837078-1a4f8e9c5b5b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .hero h1 {
+            font-size: 5rem;
+            color: #ffd700;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(255,215,0,0.5);
+        }
+        
+        .hero p {
+            font-size: 1.5rem;
+            max-width: 800px;
+            margin-bottom: 40px;
+        }
+        
+        .btn {
+            background: none;
+            border: 2px solid #ffd700;
+            color: #ffd700;
+            padding: 15px 40px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            text-decoration: none;
+            margin: 0 10px;
+            border-radius: 5px;
+        }
+        
+        .btn:hover {
+            background: #ffd700;
+            color: #000;
+        }
+        
+        /* Особенности */
+        .features {
+            padding: 80px 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .feature {
+            text-align: center;
+            padding: 30px;
+            background: #1a1e26;
+            border: 1px solid #b8860b;
+            border-radius: 10px;
+        }
+        
+        .feature-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+        
+        .feature h3 {
+            color: #ffd700;
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+        }
+        
+        /* Футер */
+        footer {
+            background: #000;
+            padding: 40px;
+            text-align: center;
+            border-top: 1px solid #b8860b;
+        }
+        
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 3rem; }
+            .features { grid-template-columns: 1fr; }
+            .navbar { flex-direction: column; gap: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Навигация -->
+    <nav class="navbar">
+        <a href="/" class="logo">⚔️ NORDSAGA</a>
+        <div class="nav-links">
+            <% if (user) { %>
+                <span>👤 <%= user.username %></span>
+                <a href="/game">Играть</a>
+                <a href="/leaders">Лидеры</a>
+                <a href="/logout">Выйти</a>
+            <% } else { %>
+                <a href="/login">Войти</a>
+                <a href="/register">Регистрация</a>
+                <a href="/leaders">Лидеры</a>
+            <% } %>
+        </div>
+    </nav>
+    
+    <!-- Герой -->
+    <section class="hero">
+        <h1>NORDSAGA</h1>
+        <p>Стань легендой севера! Веди свою дружину в походы, ищи сокровища и впиши своё имя в саги!</p>
+        <div>
+            <% if (user) { %>
+                <a href="/game" class="btn">⚔️ Продолжить путь</a>
+            <% } else { %>
+                <a href="/register" class="btn">⚔️ Начать сагу</a>
+                <a href="/login" class="btn">🔑 Войти</a>
+            <% } %>
+        </div>
+    </section>
+    
+    <!-- Особенности -->
+    <section class="features">
+        <div class="feature">
+            <div class="feature-icon">🗺️</div>
+            <h3>Большой мир</h3>
+            <p>Исследуй разнообразные локации: леса, горы, моря, деревни и города</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">⚔️</div>
+            <h3>Тактические бои</h3>
+            <p>Сражайся с врагами, учитывая силу дружины и оружие</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">💾</div>
+            <h3>Сохранения</h3>
+            <p>Твой прогресс сохраняется на сервере - играй где угодно</p>
+        </div>
+    </section>
+    
+    <!-- Футер -->
+    <footer>
+        <p>© 2024 NORDSAGA - Сага о викингах</p>
+        <p>Создано с ⚔️ для настоящих ярлов</p>
+    </footer>
+</body>
+</html>
