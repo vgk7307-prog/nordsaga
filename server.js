@@ -1,29 +1,36 @@
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
-const fs = require('fs');
+const MemoryStore = require('memorystore')(session);
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Настройки
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Настройка сессий для Vercel
 app.use(session({
-    secret: 'viking-secret',
+    secret: 'viking-secret-key-for-nordsaga-game',
     resave: false,
-    saveUninitialized: true
+    saveUninitialized: false,
+    store: new MemoryStore({
+        checkPeriod: 86400000 // чистим раз в 24 часа
+    }),
+    cookie: {
+        maxAge: 24 * 60 * 60 * 1000, // 24 часа
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production'
+    }
 }));
 
-// Шаблоны
+// Шаблонизатор
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// База данных
-const DB_PATH = path.join(__dirname, 'database');
-if (!fs.existsSync(DB_PATH)) {
-    fs.mkdirSync(DB_PATH);
-}
+// Временная база данных в памяти
+let usersDB = {};
 
 // Маршруты
 app.get('/', (req, res) => {
@@ -43,19 +50,16 @@ app.get('/login', (req, res) => {
 
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
-    const userFile = path.join(DB_PATH, `${username}.json`);
     
-    if (!fs.existsSync(userFile)) {
+    if (!usersDB[username]) {
         return res.json({ success: false, message: 'Пользователь не найден' });
     }
     
-    const user = JSON.parse(fs.readFileSync(userFile));
-    
-    if (user.password !== password) {
+    if (usersDB[username].password !== password) {
         return res.json({ success: false, message: 'Неверный пароль' });
     }
     
-    req.session.user = user;
+    req.session.user = usersDB[username];
     res.json({ success: true, redirect: '/game' });
 });
 
@@ -70,13 +74,11 @@ app.post('/register', (req, res) => {
         return res.json({ success: false, message: 'Заполните все поля' });
     }
     
-    const userFile = path.join(DB_PATH, `${username}.json`);
-    
-    if (fs.existsSync(userFile)) {
+    if (usersDB[username]) {
         return res.json({ success: false, message: 'Пользователь уже существует' });
     }
     
-    const user = {
+    usersDB[username] = {
         username,
         password,
         game: {
@@ -85,6 +87,7 @@ app.post('/register', (req, res) => {
             crew: 50,
             power: 100,
             food: 30,
+            day: 1,
             x: 2,
             y: 2,
             inventory: {
@@ -96,8 +99,7 @@ app.post('/register', (req, res) => {
         }
     };
     
-    fs.writeFileSync(userFile, JSON.stringify(user, null, 2));
-    req.session.user = user;
+    req.session.user = usersDB[username];
     res.json({ success: true, redirect: '/game' });
 });
 
@@ -107,13 +109,12 @@ app.post('/api/save', (req, res) => {
     }
     
     const { gameData } = req.body;
-    const userFile = path.join(DB_PATH, `${req.session.user.username}.json`);
+    const username = req.session.user.username;
     
-    let user = JSON.parse(fs.readFileSync(userFile));
-    user.game = gameData;
-    
-    fs.writeFileSync(userFile, JSON.stringify(user, null, 2));
-    req.session.user = user;
+    if (usersDB[username]) {
+        usersDB[username].game = gameData;
+        req.session.user = usersDB[username];
+    }
     
     res.json({ success: true });
 });
@@ -132,26 +133,22 @@ app.get('/logout', (req, res) => {
 });
 
 app.get('/leaders', (req, res) => {
-    const users = fs.readdirSync(DB_PATH)
-        .filter(f => f.endsWith('.json'))
-        .map(f => {
-            const data = JSON.parse(fs.readFileSync(path.join(DB_PATH, f)));
-            return {
-                username: data.username,
-                glory: data.game.glory,
-                gold: data.game.gold
-            };
-        })
+    const leaders = Object.values(usersDB)
+        .map(u => ({
+            username: u.username,
+            glory: u.game.glory,
+            gold: u.game.gold
+        }))
         .sort((a, b) => b.glory - a.glory)
         .slice(0, 10);
     
-    res.render('leaders', { users });
+    res.render('leaders', { users: leaders });
 });
 
 // Запуск сервера
 app.listen(PORT, () => {
-    console.log('\n⚔️═══════════════════════════════════⚔️');
-    console.log('🔥  NORDSAGA сервер запущен!');
-    console.log('🔥  http://localhost:' + PORT);
-    console.log('⚔️═══════════════════════════════════⚔️\n');
+    console.log(`\n⚔️ NORDSAGA запущен на http://localhost:${PORT}\n`);
 });
+
+// Экспорт для Vercel
+module.exports = app;
